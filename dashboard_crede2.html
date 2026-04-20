@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Tempo Integral | CREDE II</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; padding: 16px; }
+
+  .dashboard { max-width: 1400px; margin: 0 auto; }
+
+  .header { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 14px 20px; text-align: center; margin-bottom: 14px; }
+  .header h1 { color: #e0e0e0; font-size: 20px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .header p { color: #a0a0b0; font-size: 12px; margin-top: 4px; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .kpi-card { border-radius: 8px; padding: 14px 16px; text-align: center; }
+  .kpi-card.blue { background: #1565c0; border: 1px solid #1976d2; }
+  .kpi-card.orange { background: #e65100; border: 1px solid #f57c00; }
+  .kpi-card.dark { background: #0d1b2a; border: 1px solid #1e3a5f; }
+  .kpi-card .value { font-size: 32px; font-weight: 700; color: #fff; }
+  .kpi-card .label { font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .section-title { font-size: 12px; color: #a0a0b0; text-align: center; margin-bottom: 12px; padding: 6px; background: #16213e; border-radius: 4px; }
+
+  .kpi-grid2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .kpi-card2 { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 12px 16px; text-align: center; }
+  .kpi-card2 .value { font-size: 26px; font-weight: 700; }
+  .kpi-card2 .value.green { color: #4caf50; }
+  .kpi-card2 .value.blue { color: #42a5f5; }
+  .kpi-card2 .value.orange { color: #ff9800; }
+  .kpi-card2 .value.white { color: #e0e0e0; }
+  .kpi-card2 .label { font-size: 10px; color: #808090; margin-top: 4px; }
+
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .chart-card { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 14px; }
+  .chart-card h3 { font-size: 12px; color: #a0a0b0; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .charts-row2 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+  .table-card { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 14px; }
+  .table-card h3 { font-size: 12px; color: #a0a0b0; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #0f3460; color: #a0d4ff; padding: 6px 8px; text-align: center; font-weight: 600; }
+  td { padding: 5px 8px; text-align: center; border-bottom: 1px solid #0f3460; color: #c0c0d0; }
+  tr:hover td { background: rgba(255,255,255,0.03); }
+  .td-bold { font-weight: 700; color: #fff; }
+  tr.total td { background: #1565c0; color: #fff; font-weight: 700; }
+
+  .footer { text-align: center; padding: 10px; font-size: 11px; color: #606070; background: #16213e; border-radius: 8px; margin-top: 4px; }
+
+  .warning-bar { background: #1a1a10; border: 1px solid #554400; border-radius: 6px; padding: 6px 12px; font-size: 11px; color: #ccaa00; margin-bottom: 14px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <div class="header">
+    <h1>Dashboard — Tempo Integral | CREDE II</h1>
+    <p>Pelo cargo por meio parar resolver — 6º ao 9º ano do Ensino Fundamental</p>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="value">30</div>
+      <div class="label">Total Matriculados</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="value">30</div>
+      <div class="label">Em Tempo Integral</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="value">100,0%</div>
+      <div class="label">Cobertura Integral</div>
+    </div>
+    <div class="kpi-card dark">
+      <div class="value">15</div>
+      <div class="label">Maior piso CREDE II</div>
+    </div>
+  </div>
+
+  <div class="warning-bar">
+    ⚠ Gráficos atualizados automaticamente. Clique em cima a qualquer planilha com os dados certos na "Rede"
+  </div>
+
+  <p class="section-title">Matrículas por município — 6º ao 9º ano do Ensino Fundamental</p>
+
+  <div class="kpi-grid2">
+    <div class="kpi-card2">
+      <div class="value green">14.137</div>
+      <div class="label">Total Matrículas</div>
+    </div>
+    <div class="kpi-card2">
+      <div class="value blue">5.642</div>
+      <div class="label">Em Tempo Integral</div>
+    </div>
+    <div class="kpi-card2">
+      <div class="value orange">39,9%</div>
+      <div class="label">Cobertura Integral</div>
+    </div>
+    <div class="kpi-card2">
+      <div class="value white">15</div>
+      <div class="label">Municípios</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>Matrículas por Município — Total vs. Tempo Integral</h3>
+      <div style="position:relative;height:380px;">
+        <canvas id="chartMunicipios" role="img" aria-label="Gráfico de barras horizontais: matrículas por município comparando total e tempo integral"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>% Cobertura Integral por Município</h3>
+      <div style="position:relative;height:380px;">
+        <canvas id="chartCobertura" role="img" aria-label="Gráfico de barras horizontais mostrando percentual de cobertura integral por município"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-row2">
+    <div class="chart-card">
+      <h3>Matrículas por Ano Escolar</h3>
+      <div style="position:relative;height:280px;">
+        <canvas id="chartAno" role="img" aria-label="Gráfico de barras agrupadas de matrículas por ano escolar: 6º ao 9º ano"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Distribuição Integral por Ano Escolar</h3>
+      <div style="position:relative;height:280px;">
+        <canvas id="chartPizza" role="img" aria-label="Gráfico de rosca mostrando distribuição de alunos em tempo integral por ano escolar"></canvas>
+      </div>
+    </div>
+    <div class="table-card">
+      <h3>% por Ano Escolar — Tempo Integral</h3>
+      <table>
+        <thead>
+          <tr><th>Ano</th><th>Total</th><th>Integral</th><th>%</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="td-bold">6º ano</td><td>3.867</td><td>1.702</td><td>44,0%</td></tr>
+          <tr><td class="td-bold">7º ano</td><td>3.568</td><td>1.535</td><td>43,0%</td></tr>
+          <tr><td class="td-bold">8º ano</td><td>3.449</td><td>1.265</td><td>36,7%</td></tr>
+          <tr><td class="td-bold">9º ano</td><td>3.253</td><td>1.141</td><td>35,6%</td></tr>
+          <tr class="total"><td>Total</td><td>14.137</td><td>5.642</td><td>39,9%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    CREDE II — Coordenadoria Regional de Desenvolvimento da Educação | Tempo Integral — Ensino Fundamental<br>
+    * Dados de referência. Substituir pelos dados reais da "Rede" da planilha.
+  </div>
+
+</div>
+
+<script>
+const municipios = [
+  'Acaraú','Bela Cruz','Cruz','Jijoca de Jer.','Marco','Morrinhos',
+  'S. Luiz do Curu','Camocim de Aroeira','Itarema','Barroquinha',
+  'Chaval','Granja','Martinópole','Uruoca','Coreaú'
+];
+
+const totalMat = [1380,960,850,800,760,740,730,700,680,640,620,600,580,560,537];
+const integralMat = [690,480,170,320,380,296,365,420,272,256,248,420,174,280,322];
+const cobertura = integralMat.map((v,i) => ((v/totalMat[i])*100).toFixed(1));
+
+new Chart(document.getElementById('chartMunicipios'), {
+  type: 'bar',
+  data: {
+    labels: municipios,
+    datasets: [
+      { label: 'Total Matrículas', data: totalMat, backgroundColor: 'rgba(33,150,243,0.7)', borderColor: '#2196f3', borderWidth: 1 },
+      { label: 'Tempo Integral', data: integralMat, backgroundColor: 'rgba(76,175,80,0.7)', borderColor: '#4caf50', borderWidth: 1 }
+    ]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#a0a0b0', font: { size: 11 } }, position: 'top' } },
+    scales: {
+      x: { ticks: { color: '#808090', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' } },
+      y: { ticks: { color: '#c0c0d0', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('chartCobertura'), {
+  type: 'bar',
+  data: {
+    labels: municipios,
+    datasets: [
+      { label: '% Cobertura', data: cobertura, backgroundColor: cobertura.map(v => v >= 50 ? 'rgba(76,175,80,0.75)' : v >= 40 ? 'rgba(33,150,243,0.75)' : 'rgba(255,152,0,0.75)'), borderWidth: 0 }
+    ]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        min: 0, max: 100,
+        ticks: { color: '#808090', font: { size: 10 }, callback: v => v + '%' },
+        grid: { color: 'rgba(255,255,255,0.06)' }
+      },
+      y: { ticks: { color: '#c0c0d0', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('chartAno'), {
+  type: 'bar',
+  data: {
+    labels: ['6º ano','7º ano','8º ano','9º ano'],
+    datasets: [
+      { label: 'Total', data: [3867,3568,3449,3253], backgroundColor: 'rgba(33,150,243,0.7)', borderColor: '#2196f3', borderWidth: 1 },
+      { label: 'Integral', data: [1702,1535,1265,1141], backgroundColor: 'rgba(76,175,80,0.7)', borderColor: '#4caf50', borderWidth: 1 }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#a0a0b0', font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { color: '#c0c0d0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.06)' } },
+      y: { ticks: { color: '#808090', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('chartPizza'), {
+  type: 'doughnut',
+  data: {
+    labels: ['6º ano','7º ano','8º ano','9º ano'],
+    datasets: [{
+      data: [1702,1535,1265,1141],
+      backgroundColor: ['#2196f3','#4caf50','#ff9800','#9c27b0'],
+      borderColor: '#16213e',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#a0a0b0', font: { size: 10 }, padding: 8, boxWidth: 12 }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
