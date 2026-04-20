@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Tempo Integral | CREDE II</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; padding: 12px; }
+.dash { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+
+.header { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 20px; text-align: center; }
+.header h1 { color: #e6edf3; font-size: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.header p { color: #8b949e; font-size: 11px; margin-top: 3px; }
+
+#upload-zone {
+  border: 2px dashed #30363d; border-radius: 10px; padding: 28px;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s; background: #161b22;
+}
+#upload-zone:hover, #upload-zone.drag-over { border-color: #58a6ff; background: #0d2137; }
+#upload-zone .icon { font-size: 36px; margin-bottom: 8px; }
+#upload-zone p { color: #8b949e; font-size: 13px; margin: 0; }
+#upload-zone strong { color: #58a6ff; }
+#upload-zone .hint { font-size: 11px; color: #6e7681; margin-top: 6px; }
+#file-input { display: none; }
+#file-status { font-size: 12px; margin-top: 8px; }
+#file-status.ok { color: #3fb950; }
+#file-status.err { color: #f85149; }
+
+.kpi-top { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.kpi-box { border-radius: 8px; padding: 14px 12px; text-align: center; }
+.kpi-box .val { font-size: 30px; font-weight: 800; color: #fff; }
+.kpi-box .lbl { font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-box.kb { background: #1565c0; border: 1px solid #1976d2; }
+.kpi-box.ko { background: #bf360c; border: 1px solid #e64a19; }
+.kpi-box.kd { background: #1a2332; border: 1px solid #30363d; }
+
+.sec-label { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px; font-size: 11px; color: #8b949e; text-align: center; }
+
+.kpi-sec { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.kpi2 { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; text-align: center; }
+.kpi2 .val { font-size: 24px; font-weight: 700; }
+.kpi2 .lbl { font-size: 10px; color: #8b949e; margin-top: 3px; }
+.green { color: #3fb950; } .blue { color: #58a6ff; } .orange { color: #f0883e; } .white { color: #e6edf3; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: 2fr 1.1fr 1.3fr; gap: 10px; }
+
+.card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px; }
+.card h3 { font-size: 11px; color: #8b949e; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { background: #0d419d; color: #cae8ff; padding: 6px 8px; text-align: center; font-weight: 600; font-size: 11px; }
+tbody td { padding: 5px 8px; text-align: center; border-bottom: 1px solid #21262d; color: #c9d1d9; }
+tbody tr:hover td { background: rgba(255,255,255,0.03); }
+.bold { font-weight: 700; color: #e6edf3; }
+.total-row td { background: #1565c0 !important; color: #fff; font-weight: 700; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 8px; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #8b949e; }
+.leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+.footer { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 10px; text-align: center; font-size: 10px; color: #6e7681; }
+#dashboard { display: none; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<div class="dash">
+
+  <div class="header">
+    <h1>Dashboard — Tempo Integral | CREDE II</h1>
+    <p>6º ao 9º ano do Ensino Fundamental</p>
+  </div>
+
+  <div id="upload-zone" onclick="document.getElementById('file-input').click()">
+    <div class="icon">📊</div>
+    <p>Clique ou <strong>arraste aqui</strong> o arquivo <strong>.xlsx</strong> da planilha</p>
+    <p class="hint">O dashboard atualiza automaticamente com os dados da planilha</p>
+    <div id="file-status"></div>
+    <input type="file" id="file-input" accept=".xlsx,.xls">
+  </div>
+
+  <div id="dashboard">
+
+    <div class="kpi-top">
+      <div class="kpi-box kb"><div class="val" id="k-total">—</div><div class="lbl">Total Matriculados</div></div>
+      <div class="kpi-box kb"><div class="val" id="k-integral">—</div><div class="lbl">Em Tempo Integral</div></div>
+      <div class="kpi-box ko"><div class="val" id="k-pct">—</div><div class="lbl">Cobertura Integral</div></div>
+      <div class="kpi-box kd"><div class="val" id="k-mun">—</div><div class="lbl">Municípios com dados</div></div>
+    </div>
+
+    <div class="sec-label">Matrículas por município — 6º ao 9º ano do Ensino Fundamental</div>
+
+    <div class="kpi-sec">
+      <div class="kpi2"><div class="val green" id="k2-total">—</div><div class="lbl">Total Matrículas</div></div>
+      <div class="kpi2"><div class="val blue"  id="k2-int">—</div><div class="lbl">Em Tempo Integral</div></div>
+      <div class="kpi2"><div class="val orange" id="k2-pct">—</div><div class="lbl">Cobertura Integral</div></div>
+      <div class="kpi2"><div class="val white"  id="k2-mun">—</div><div class="lbl">Municípios</div></div>
+    </div>
+
+    <div class="row2">
+      <div class="card">
+        <h3>Matrículas por Município — Total vs. Tempo Integral</h3>
+        <div class="legend">
+          <span class="leg-item"><span class="leg-dot" style="background:#2196f3"></span>Total Matrículas</span>
+          <span class="leg-item"><span class="leg-dot" style="background:#4caf50"></span>Tempo Integral</span>
+        </div>
+        <div style="position:relative;" id="wrap-mun"><canvas id="cMun" role="img" aria-label="Matrículas por município"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>% Cobertura Integral por Município</h3>
+        <div class="legend">
+          <span class="leg-item"><span class="leg-dot" style="background:#4caf50"></span>≥ 50%</span>
+          <span class="leg-item"><span class="leg-dot" style="background:#2196f3"></span>40–49%</span>
+          <span class="leg-item"><span class="leg-dot" style="background:#ff9800"></span>&lt; 40%</span>
+        </div>
+        <div style="position:relative;" id="wrap-cob"><canvas id="cCob" role="img" aria-label="Cobertura integral por município"></canvas></div>
+      </div>
+    </div>
+
+    <div class="row3">
+      <div class="card">
+        <h3>Matrículas por Ano Escolar</h3>
+        <div class="legend">
+          <span class="leg-item"><span class="leg-dot" style="background:#2196f3"></span>Total</span>
+          <span class="leg-item"><span class="leg-dot" style="background:#4caf50"></span>Integral</span>
+        </div>
+        <div style="position:relative;height:260px;"><canvas id="cAnos" role="img" aria-label="Matrículas por ano escolar"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Distribuição Integral por Ano Escolar</h3>
+        <div style="position:relative;height:260px;"><canvas id="cRosca" role="img" aria-label="Distribuição por ano"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>% por Ano — Tempo Integral</h3>
+        <table>
+          <thead><tr><th>Ano</th><th>Total</th><th>Integral</th><th>%</th></tr></thead>
+          <tbody id="tbody-anos"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer">
+      CREDE II — Coordenadoria Regional de Desenvolvimento da Educação | Tempo Integral — Ensino Fundamental
+    </div>
+
+  </div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+const gc='rgba(255,255,255,0.07)', tc='#8b949e', lc='#c9d1d9';
+let chartMun, chartCob, chartAnos, chartRosca;
+
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); if(e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+document.getElementById('file-input').addEventListener('change', e => { if(e.target.files[0]) processFile(e.target.files[0]); });
+
+function processFile(file) {
+  const status = document.getElementById('file-status');
+  status.textContent = 'Lendo arquivo…'; status.className = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const sheetName = wb.SheetNames.includes('Dados') ? 'Dados' : wb.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header:1, defval:0 });
+      parseAndRender(rows);
+      status.textContent = '✓ ' + file.name + ' carregado com sucesso';
+      status.className = 'ok';
+    } catch(err) {
+      status.textContent = '✗ Erro: ' + err.message;
+      status.className = 'err';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseAndRender(rows) {
+  // Estrutura: col0=Município, cols 1-2-3=6ºano(Tot,Int,%), 4-5-6=7º, 7-8-9=8º, 10-11-12=9º, 13-14=TotalGeral
+  const municipios=[], totaisMun=[], intMun=[];
+  const totAno=[0,0,0,0], intAno=[0,0,0,0];
+
+  const skip = s => {
+    if (!s) return true;
+    const u = s.toString().toUpperCase().trim();
+    return u==='' || u.includes('CREDE') || u.includes('TOTAL') ||
+           u.includes('MUNICÍPIO') || u.includes('MUNICIPIO') ||
+           u.includes('PREENCHA') || u.includes('ANO') || u.includes('MATR');
+  };
+
+  for (let r=0; r<rows.length; r++) {
+    const row = rows[r];
+    const nome = (row[0]||'').toString().trim();
+    if (skip(nome)) continue;
+
+    const t6=+row[1]||0,  i6=+row[2]||0;
+    const t7=+row[4]||0,  i7=+row[5]||0;
+    const t8=+row[7]||0,  i8=+row[8]||0;
+    const t9=+row[10]||0, i9=+row[11]||0;
+
+    const tT=t6+t7+t8+t9, iT=i6+i7+i8+i9;
+    if (tT===0 && iT===0) continue;
+
+    municipios.push(nome);
+    totaisMun.push(tT);
+    intMun.push(iT);
+    totAno[0]+=t6; intAno[0]+=i6;
+    totAno[1]+=t7; intAno[1]+=i7;
+    totAno[2]+=t8; intAno[2]+=i8;
+    totAno[3]+=t9; intAno[3]+=i9;
+  }
+
+  const gTotal = totaisMun.reduce((a,b)=>a+b,0);
+  const gInt   = intMun.reduce((a,b)=>a+b,0);
+  const gPct   = gTotal>0 ? (gInt/gTotal*100) : 0;
+  const cobs   = municipios.map((_,i) => totaisMun[i]>0 ? +(intMun[i]/totaisMun[i]*100).toFixed(1):0);
+  const n      = municipios.length;
+
+  // KPIs
+  const fmt = v => v.toLocaleString('pt-BR');
+  const fmtP = v => v.toFixed(1).replace('.',',')+'%';
+  document.getElementById('k-total').textContent    = fmt(gTotal);
+  document.getElementById('k-integral').textContent = fmt(gInt);
+  document.getElementById('k-pct').textContent      = fmtP(gPct);
+  document.getElementById('k-mun').textContent      = n;
+  document.getElementById('k2-total').textContent   = fmt(gTotal);
+  document.getElementById('k2-int').textContent     = fmt(gInt);
+  document.getElementById('k2-pct').textContent     = fmtP(gPct);
+  document.getElementById('k2-mun').textContent     = n;
+
+  // Tabela por ano
+  const anos=['6º ano','7º ano','8º ano','9º ano'];
+  document.getElementById('tbody-anos').innerHTML =
+    anos.map((a,i) => {
+      const p = totAno[i]>0 ? fmtP(intAno[i]/totAno[i]*100) : '—';
+      return `<tr><td class="bold">${a}</td><td>${fmt(totAno[i])}</td><td>${fmt(intAno[i])}</td><td>${p}</td></tr>`;
+    }).join('') +
+    `<tr class="total-row"><td>Total</td><td>${fmt(gTotal)}</td><td>${fmt(gInt)}</td><td>${fmtP(gPct)}</td></tr>`;
+
+  // Altura dinâmica das barras horizontais
+  const hBar = Math.max(300, n*38+60);
+  document.getElementById('wrap-mun').style.height = hBar+'px';
+  document.getElementById('wrap-cob').style.height = hBar+'px';
+
+  // Mostrar dashboard
+  document.getElementById('dashboard').style.display = 'flex';
+
+  // Destruir charts anteriores
+  [chartMun, chartCob, chartAnos, chartRosca].forEach(c => c && c.destroy());
+
+  // Chart 1 — Municípios
+  chartMun = new Chart(document.getElementById('cMun'), {
+    type:'bar',
+    data:{ labels:municipios, datasets:[
+      { label:'Total',    data:totaisMun, backgroundColor:'rgba(33,150,243,0.65)', borderColor:'#2196f3', borderWidth:1 },
+      { label:'Integral', data:intMun,    backgroundColor:'rgba(76,175,80,0.65)',  borderColor:'#4caf50', borderWidth:1 }
+    ]},
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        datalabels:{ anchor:'end', align:'end', color:'#c9d1d9', font:{size:9,weight:'600'}, formatter:v=>fmt(v), clamp:true }
+      },
+      layout:{ padding:{right:40} },
+      scales:{ x:{ticks:{color:tc,font:{size:10}},grid:{color:gc}}, y:{ticks:{color:lc,font:{size:10}},grid:{color:'rgba(255,255,255,0.03)'}} }
+    }
+  });
+
+  // Chart 2 — Cobertura
+  chartCob = new Chart(document.getElementById('cCob'), {
+    type:'bar',
+    data:{ labels:municipios, datasets:[{
+      label:'% Cobertura', data:cobs,
+      backgroundColor:cobs.map(v=>v>=50?'rgba(76,175,80,0.75)':v>=40?'rgba(33,150,243,0.75)':'rgba(255,152,0,0.75)'),
+      borderWidth:0
+    }]},
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.parsed.x.toFixed(1)+'%'}},
+        datalabels:{ anchor:'end', align:'end', color:'#c9d1d9', font:{size:9,weight:'600'}, formatter:v=>v.toFixed(1)+'%', clamp:true }
+      },
+      layout:{ padding:{right:44} },
+      scales:{ x:{min:0,max:100,ticks:{color:tc,font:{size:10},callback:v=>v+'%'},grid:{color:gc}}, y:{ticks:{color:lc,font:{size:10}},grid:{color:'rgba(255,255,255,0.03)'}} }
+    }
+  });
+
+  // Chart 3 — Por ano
+  chartAnos = new Chart(document.getElementById('cAnos'), {
+    type:'bar',
+    data:{ labels:anos, datasets:[
+      { label:'Total',    data:totAno, backgroundColor:'rgba(33,150,243,0.7)', borderColor:'#2196f3', borderWidth:1 },
+      { label:'Integral', data:intAno, backgroundColor:'rgba(76,175,80,0.7)',  borderColor:'#4caf50', borderWidth:1 }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        datalabels:{ anchor:'end', align:'top', color:'#c9d1d9', font:{size:10,weight:'600'}, formatter:v=>fmt(v) }
+      },
+      layout:{ padding:{top:18} },
+      scales:{ x:{ticks:{color:lc,font:{size:11}},grid:{color:gc}}, y:{ticks:{color:tc,font:{size:10}},grid:{color:gc}} }
+    }
+  });
+
+  // Chart 4 — Rosca
+  const totalInt = intAno.reduce((a,b)=>a+b,0);
+  chartRosca = new Chart(document.getElementById('cRosca'), {
+    type:'doughnut',
+    data:{
+      labels: anos.map((a,i)=>totalInt>0?`${a} (${(intAno[i]/totalInt*100).toFixed(1)}%)`:a),
+      datasets:[{ data:intAno, backgroundColor:['#2196f3','#4caf50','#ff9800','#9c27b0'], borderColor:'#161b22', borderWidth:3 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{color:'#8b949e',font:{size:10},padding:8,boxWidth:12} },
+        tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)+' alunos'}},
+        datalabels:{ color:'#fff', font:{size:11,weight:'700'}, formatter:v=>totalInt>0?(v/totalInt*100).toFixed(1)+'%':'' }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>
